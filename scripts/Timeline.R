@@ -3,10 +3,12 @@ library(scales)
 library(lubridate)
 library(openxlsx)
 library(plotly)
+library(purrr)
+
 
 df <- read.xlsx(sheet = "Timeliner",
                 #sheet = "Timeline Birds",
-                xlsxFile = '~/Dropbox/Timeline.xlsx')
+                xlsxFile = 'data/Timeline.xlsx')
 
 # df$Event[grep(pattern = "\r\n",x = df$Event)]
 df$Event2 = gsub(pattern = "\r\n",replacement = " ",x = df$Event)
@@ -113,6 +115,8 @@ ggempty <- ggplot(df,aes(x=new.year, y=0,
   labs(col="Milestones") + 
   scale_color_manual(values=status_colors,
                      labels=status_levels, drop = FALSE) +
+  scale_x_continuous(breaks = round(seq(min(df$Year), max(df$Year), by = 10),-1)) +
+  
   theme_classic() + 
   # Don't show axes, appropriately position legend
   theme(axis.line.y=element_blank(),
@@ -165,19 +169,21 @@ timeline_plot
 
 
 fig = ggplotly(timeline_plot, tooltip = NULL)
-fig %>%  
+purrr::reduce(status_levels, ~ .x  %>% 
   add_text(
-    x = df$new.year,
-    y = ifelse(df$pos2>0,df$pos2+0.05,df$pos2-0.05),
-    text = df$evtwrap,
-    hovertext = df$description,
+    data = filter(df, status == .y),
+    x = ~new.year,
+    y = ~ifelse(pos2>0,pos2+0.05,pos2-0.05),
+    text = ~evtwrap,
+    hovertext = ~description,
     hoverinfo = 'text',
     mode ="text",
-    textfont = list(color=status_colors[df$status], size =10),
-    marker = list(color=status_colors[df$status], size = 0.00001),
-    showlegend = T,
-    textposition = ifelse(df$pos2>0,"top center","bottom center")
-  ) %>%
+    textfont = list(color=~status_colors[status], size =10),
+    marker = list(color=~status_colors[status], size = 0.00001),
+    showlegend = FALSE,
+    legendgroup = .y,
+    textposition = ~ifelse(pos2>0,"top center","bottom center")
+  ),.init = fig) %>%
   add_text(
     x = pos.lab$year,
     y = -0.05,
@@ -204,7 +210,7 @@ fig %>%
   # ) %>% 
   layout(#title = list(text = "Biology history timeline", y = 0.8),
     title = "Biology history timeline",
-         showlegend = FALSE,
+         showlegend = TRUE,
          xaxis = list(range = c(2000, 2010),
                       rangeselector = list(buttons = list(list(step = "all"))),
                       rangeslider = list(type = "date")
