@@ -20,11 +20,11 @@ status_levels <- c(sort(unique(df$Type))) #c("birth or death", "literature", "di
 # df=df[df$Year > 1925 & df$Year < 1950,]
 df=df[df$Year > -2000,]
 if (length(which(is.na(df$Year)))!=0) {
-df = df[-which(is.na(df$Year)),]
+  df = df[-which(is.na(df$Year)),]
 }
 
 if(length(which(status_levels=="none"))==0){
-status_levels = c(status_levels,"none")
+  status_levels = c(status_levels,"none")
 }
 
 df$status <- factor(df$Type, levels = status_levels, ordered=FALSE)
@@ -47,30 +47,36 @@ df[df$pos2 >= -0.05 & df$pos2 <= 0,"pos2"] <- df[df$pos2 >= -0.05 & df$pos2 <= 0
 df[df$pos2 <= 0.05 & df$pos2 >= 0,"pos2"] <- df[df$pos2 <= 0.05 & df$pos2 >= 0,"pos2"]+0.05
 df$dir = rep(directions, length.out=length((df$Year)))
 
+# Find the duplicated years 
 year.dup = unique(df$Year[which(duplicated(df$Year))])
 year.dup = na.omit(year.dup)
 df$new.year = df$Year
 
+# Table of all the diplucated years 
+table.dup.year = table(df[df$Year %in% year.dup,"Year"])
+# Years with more than 2 duplications
+year.more.2 = names(table.dup.year[which(table.dup.year >2 )])
+
+# If duplicated year is not empty 
 if (length(year.dup)!=0) {
-for (i in 1:length(year.dup)) {
-  y.vec = na.omit(df[df$Year==year.dup[i],"Year"])
-  lengtmp = length(y.vec)
-  for (j in 1:lengtmp) {
-    y.vec[j] <- y.vec[j]+0.1*(j-1)
+  for (i in 1:length(year.dup)) {
+    y.vec = na.omit(df[df$Year==year.dup[i],"Year"])
+    lengtmp = length(y.vec)
+    for (j in 1:lengtmp) {
+      y.vec[j] <- y.vec[j]+0.1*(j-1)
+    }
+    df[df$Year==year.dup[i],"new.year"] <- y.vec
   }
-  df[df$Year==year.dup[i],"new.year"] <- y.vec
-}
-  table.dup.year = table(df[df$Year %in% year.dup,"Year"])
-  year.more.2 = names(table.dup.year[which(table.dup.year >2 )])
-  
+  # Deal with years with more than 2 duplication
   for (k in 1:length(year.more.2)) {
     year.seq.large.gap = seq(-1,1,
                              length.out = length(df[df$Year %in% year.more.2[k],"pos2"]))
-    if(length(year.seq.large.gap) %% 2 == 0){
+    if(length(year.seq.large.gap) %% 2 != 0){
       year.seq.large.gap = year.seq.large.gap * c(-1,1,1)
-    } else {year.seq.large.gap = year.seq.large.gap * c(-1,1,1,-1)
+    } else {
+      year.seq.large.gap = year.seq.large.gap * c(-1,1,1,-1)
     }
-      
+    
     length(which(year.seq.large.gap==10))
     year.seq.large.gap[year.seq.large.gap==0]<-0.05
     df[df$Year %in% year.more.2[k],"pos2"] <- year.seq.large.gap
@@ -148,9 +154,9 @@ tl_line1 <- ggempty +
   #                          fontface = "bold"),
   #           size = 2.5, vjust = 0.5, color = 'black', angle = 90)
   geom_label(data = pos.lab, aes(x = year, y = 0, #y = -0.1, 
-                                label = year, 
-                           fontface = "bold"),
-            size = 2.5, color = 'black')
+                                 label = year, 
+                                 fontface = "bold"),
+             size = 2.5, color = 'black')
 
 # Show text for each month
 # timeline_plot <- timeline_plot + 
@@ -170,20 +176,20 @@ timeline_plot
 
 fig = ggplotly(timeline_plot, tooltip = NULL)
 purrr::reduce(status_levels, ~ .x  %>% 
-  add_text(
-    data = filter(df, status == .y),
-    x = ~new.year,
-    y = ~ifelse(pos2>0,pos2+0.05,pos2-0.05),
-    text = ~evtwrap,
-    hovertext = ~description,
-    hoverinfo = 'text',
-    mode ="text",
-    textfont = list(color=~status_colors[status], size =10),
-    marker = list(color=~status_colors[status], size = 0.00001),
-    showlegend = FALSE,
-    legendgroup = .y,
-    textposition = ~ifelse(pos2>0,"top center","bottom center")
-  ),.init = fig) %>%
+                add_text(
+                  data = filter(df, status == .y),
+                  x = ~new.year,
+                  y = ~ifelse(pos2>0,pos2+0.05,pos2-0.05),
+                  text = ~evtwrap,
+                  hovertext = ~description,
+                  hoverinfo = 'text',
+                  mode ="text",
+                  textfont = list(color=~status_colors[status], size =10),
+                  marker = list(color=~status_colors[status], size = 0.00001),
+                  showlegend = FALSE,
+                  legendgroup = .y,
+                  textposition = ~ifelse(pos2>0,"top center","bottom center")
+                ),.init = fig) %>%
   add_text(
     x = pos.lab$year,
     y = -0.05,
@@ -207,14 +213,14 @@ purrr::reduce(status_levels, ~ .x  %>%
   #   marker = list(color=status_colors[df$status], size = 0.00001),
   #   showlegend = F,
   #   textposition = ifelse(df$pos2>0,"top center","bottom center")
-  # ) %>% 
-  layout(#title = list(text = "Biology history timeline", y = 0.8),
-    title = "Biology history timeline",
-         showlegend = TRUE,
-         xaxis = list(range = c(2000, 2010),
-                      rangeselector = list(buttons = list(list(step = "all"))),
-                      rangeslider = list(type = "date")
+# ) %>% 
+layout(#title = list(text = "Biology history timeline", y = 0.8),
+  title = "Biology history timeline",
+  showlegend = TRUE,
+  xaxis = list(range = c(2000, 2010),
+               rangeselector = list(buttons = list(list(step = "all"))),
+               rangeslider = list(type = "date")
   ), 
-         yaxis = list(range = c(-1.5,1.5)),
-         dragmode = "pan")
+  yaxis = list(range = c(-1.5,1.5)),
+  dragmode = "pan")
 
